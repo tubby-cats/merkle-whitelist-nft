@@ -2,14 +2,10 @@ const { MerkleTree } = require('merkletreejs')
 const keccak256 = require('keccak256')
 const wl = require('./wl.json')
 const ethers = require('ethers');
-
-function paddedBuffer(addr){
-    const buf = Buffer.from(addr.substr(2).padStart(32*2, "0"), "hex")
-    return Buffer.concat([buf]);
-}
+const { paddedBuffer } = require('./utils');
 
 async function mint(addressToMint) {
-    const tree = new MerkleTree(wl.map(x => paddedBuffer(x)), keccak256, { sort: true })
+    const tree = new MerkleTree(wl.map(paddedBuffer), keccak256, { sort: true })
     const leaf = paddedBuffer(addressToMint)
     const proof = tree.getHexProof(leaf)
     console.log("proof:", proof)
