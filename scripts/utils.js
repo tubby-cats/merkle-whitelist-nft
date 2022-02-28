@@ -22,9 +22,18 @@ async function deployMockContract(name){
 const { MerkleTree } = require('merkletreejs')
 const keccak256 = require('keccak256')
 
-function paddedBuffer(addr){
-    const buf = Buffer.from(addr.substr(2).padStart(32*2, "0"), "hex")
-    return Buffer.concat([buf]);
+function paddedBuffer(addr) {
+    const normalizedAddress = addr
+                              .replace(/^0x/ig, '')
+                              .replace(/[^a-f0-9]/ig, ''); // strip any non-hex characters
+
+    if (normalizedAddress.length !== 40)
+        throw new Error('Invalid address: ' + addr);
+ 
+    const buf = Buffer.alloc(32);
+    Buffer.from(normalizedAddress, 'hex').copy(buf, 32 - 20, 0, 20);
+
+    return buf;
 }
 
 function buildTreeAndProof(
@@ -35,15 +44,16 @@ function buildTreeAndProof(
     ],
     addressToGetProof = "0x4074bc05a89f1b97b51413b06f7e44f46eae6880"
 ) {
-    const tree = new MerkleTree(leaves.map(x => paddedBuffer(x)), keccak256, { sort: true })
+    const tree = new MerkleTree(leaves.map(paddedBuffer), keccak256, { sort: true })
     const root = tree.getHexRoot()
     const leaf = paddedBuffer(addressToGetProof)
     const proof = tree.getHexProof(leaf)
     return {tree, proof, root, leaf}
 }
 
-module.exports={
+module.exports = {
     getContract,
     buildTreeAndProof,
-    deployMockContract
+    deployMockContract,
+    paddedBuffer
 }
